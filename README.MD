@@ -4,7 +4,7 @@ Install Step:
 
 !!!Important: Sorry, I made a mistake. When I upload the files, I use git repo name as top directory name instead of "shadowsocks". So, you shuold rename the top directory "ss_for_ubnt_usg_p3" to "shadowsocks". If not, the install scripts will not work.
 
-0. rename the top directory "ss_for_ubnt_usg_p3" to "shadowsocks". 
+0. rename the top directory "ss_for_ubnt_usg_p3" to "shadowsocks" and remove the .git info if you "git clone" the repo. 
 
 1. run the install script: installer/install
 
