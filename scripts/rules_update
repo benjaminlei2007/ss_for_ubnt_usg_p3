@@ -1,0 +1,75 @@
+#!/bin/bash
+
+source /config/user-data/shadowsocks/scripts/file_list
+source $MAIN_CONF
+
+need_restart_dnsmasq=0
+
+updateCHNroute() {
+  rm -f  /tmp/chnroute.txt
+  curl 'http://ftp.apnic.net/apnic/stats/apnic/delegated-apnic-latest' | grep ipv4 | grep CN | awk -F\| '{ printf("%s/%d\n", $4, 32-log($5)/log(2)) }' >  /tmp/chnroute.txt
+  if [ ! -s /tmp/chnroute.txt ]; then
+    return 1
+  fi
+  if [ ! -n "`diff /tmp/chnroute.txt $CHNROUTE_RULES`" ]; then
+    return 1
+  fi
+  mv -f /tmp/chnroute.txt $CHNROUTE_RULES
+  chmod 644 $CHNROUTE_RULES
+  if pidof chinadns>/dev/null; then
+      $CHINADNS_SERVICE restart
+  fi
+  rm -f $CHNROUTE_RULES_CACHE
+  if [ -n "`ipset list | grep 'chnroute'`" ]; then
+    ipset flush chnroute
+    sed -e "s/^/add chnroute &/g" $CHNROUTE_RULES | awk '{print $0} END{print "COMMIT"}' | ipset -R
+    ipset save chnroute > $CHNROUTE_RULES_CACHE
+  fi
+  return 0
+}
+updateChinaList() {
+  rm -f /tmp/china_list.conf
+  # download china_list.conf
+  curl 'https://raw.githubusercontent.com/felixonmars/dnsmasq-china-list/master/accelerated-domains.china.conf' > /tmp/china_list.conf
+  sed -i "s|^\(server.*\)/[^/]*$|\1/$isp_dns|;s/server\=\//server\=\/\./g" /tmp/china_list.conf
+  if [ ! -s /tmp/china_list.conf ]; then
+    return 1
+  fi
+  if [ ! -n "`diff /tmp/china_list.conf $CHINA_LIST_RULES`" ]; then
+    return 1
+  fi
+  mv -f /tmp/china_list.conf $CHINA_LIST_RULES
+  chmod 644 $CHINA_LIST_RULES
+  need_restart_dnsmasq=1
+  return 0
+}
+  
+updateForeignList(){
+  rm -f /tmp/foreign_list.conf  
+  # download foreign_list.conf
+  gfwlist2dnsmasq -o /tmp/foreign_list.conf
+  if [ ! -s /tmp/foreign_list.conf ]; then
+    return 1
+  fi
+  if [ ! -n "`diff /tmp/foreign_list.conf $FOREIGN_LIST_RULES`" ]; then
+    return 1
+  fi
+  mv -f /tmp/foreign_list.conf $FOREIGN_LIST_RULES
+  chmod 644 $FOREIGN_LIST_RULES
+  need_restart_dnsmasq=1
+  return 0
+}
+
+updateDnsmasqConf(){
+  updateChinaList
+  updateForeignList
+  if [ $need_restart_dnsmasq -eq 1 ]; then
+    /etc/init.d/dnsmasq restart
+  fi
+}
+
+
+if [ "$enable" = "yes" ]; then
+  updateCHNroute
+  updateDnsmasqConf
+fi

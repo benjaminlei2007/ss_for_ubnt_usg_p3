@@ -1,0 +1,78 @@
+#!/bin/bash
+
+source /config/user-data/shadowsocks/scripts/file_list
+source $MAIN_CONF
+
+while true
+do
+    #check chinadnsd is still running
+    ret=`service chinadnsd status | grep 'running'`
+    if [ ! -n "$ret" ]; then
+        echo "`date +%H:%M:%S` chinadnsd is down, restarting now..."
+        service chinadnsd start
+    fi
+    
+    #check dns2socksd is still running
+    ret=`service dns2socksd status | grep 'running'`
+    if [ ! -n "$ret" ]; then
+        echo "`date +%H:%M:%S` dns2socksd is down, restarting now..."
+        service dns2socksd start
+    fi
+    
+    #check ss/ssr locald redird_tcp redird_udp is still running
+    if [ "$client_type" = "ss" ];then
+      locald_service=ss-locald
+      redird_tcp_service=ss-redird_tcp
+      redird_udp_service=ss-redird_udp
+    else
+      locald_service=ssr-locald
+      redird_tcp_service=ssr-redird_tcp
+      redird_udp_service=ssr-redird_udp
+    fi
+    
+    ret=`service $locald_service status | grep 'running'`
+    if [ ! -n "$ret" ]; then
+      echo "`date +%H:%M:%S` $locald_service is down, restarting now..."
+      service $locald_service start
+    fi
+    ret=`service $redird_tcp_service status | grep 'running'`
+    if [ ! -n "$ret" ]; then
+      echo "`date +%H:%M:%S` $redird_tcp_service is down, restarting now..."
+      service $redird_tcp_service start
+    fi
+    
+    if [ "$enable_udp_relay" = "yes" -a "`uname -r`" = "3.10.20-UBNT" ]; then
+      ret=`service $redird_udp_service status | grep 'running'`
+      if [ ! -n "$ret" ]; then
+        echo "`date +%H:%M:%S` $redird_udp_service is down, restarting now..."
+        service $redird_udp_service start
+      fi
+    fi
+      
+    #check kcptund is still running
+    if [ "$enable_kcptun" = "yes" ]; then
+      ret=`service kcptund status | grep 'running'`
+      if [ ! -n "$ret" ]; then
+        echo "`date +%H:%M:%S` kcptund is down, restarting now..."
+        service kcptund start
+      fi
+    fi
+    
+    #check udp2raw is still running
+    if [ "$enable_udp2raw" = "yes" ]; then
+      ret=`service udp2rawd_kcptun status | grep 'running'`
+      if [ ! -n "$ret" ]; then
+        echo "`date +%H:%M:%S` udp2rawd_kcptun is down, restarting now..."
+        service udp2rawd_kcptun start
+      fi
+      if [ "$enable_udp_relay" = "yes" ]; then
+        ret=`service udp2rawd_ss status | grep 'running'`
+        if [ ! -n "$ret" ]; then
+          echo "`date +%H:%M:%S` udp2rawd_ss is down, restarting now..."
+          service udp2rawd_ss start
+        fi
+      fi
+    fi
+    
+    sleep 60s
+done

@@ -1,0 +1,7 @@
+#!/bin/bash
+
+source /config/user-data/shadowsocks/scripts/file_list
+source $MAIN_CONF
+
+sed -i "s|^\(server.*\)/[^/]*$|\1/$isp_dns|" $CHINA_LIST_RULES_SRC
+/config/scripts/post-config.d/ss_postconfig

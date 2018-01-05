@@ -1,0 +1,221 @@
+#!/bin/bash
+
+source /config/user-data/shadowsocks/scripts/file_list
+source $MAIN_CONF
+
+fixSS(){
+  if [ -e $SS_REDIR ]; then
+    return;
+  else
+    /config/user-data/shadowsocks/scripts/fix
+  fi
+}
+
+# delete old shadowsocks chain
+del_rules(){
+
+  exists_iptables=`iptables -t nat -L | grep 'SHADOWSOCKS'`
+  until [ ! -n "$exists_iptables" ]
+  do 
+    iptables -w -t nat -D PREROUTING -p tcp -j SHADOWSOCKS 
+    iptables -w -t nat -F SHADOWSOCKS 
+    iptables -w -t nat -X SHADOWSOCKS 
+    exists_iptables=`iptables -t nat -L | grep 'SHADOWSOCKS'`
+  done
+  
+  exists_iptables=`iptables -t mangle -L | grep 'SHADOWSOCKS_UDP'`
+  until [ ! -n "$exists_iptables" ]
+  do 
+    iptables -w -t mangle -D PREROUTING -p udp -j SHADOWSOCKS_UDP 
+    iptables -w -t mangle -F SHADOWSOCKS_UDP 
+    iptables -w -t mangle -X SHADOWSOCKS_UDP 
+    exists_iptables=`iptables -t mangle -L | grep 'SHADOWSOCKS_UDP'`
+  done
+  
+    ip_rule_exist=`ip rule show | grep "lookup 100" | grep -c 100`
+    if [ -n "$ip_rule_exist" ];then
+        until [ "$ip_rule_exist" = 0 ]
+        do 
+            IP_ARG=`ip rule show | grep "lookup 100"|head -n 1|cut -d " " -f3,4,5,6`
+            ip rule del $IP_ARG
+            ip_rule_exist=`expr $ip_rule_exist - 1`
+        done
+    fi
+    #remove_route_table
+    ip_rule_exist=`ip route show table 100`
+    if [ -n "$ip_rule_exist" ]; then
+      ip route del local 0.0.0.0/0 dev lo table 100 
+    fi
+  
+}
+
+configureDnsmasq(){
+  if [ -e $SS_RULES -a -e $FOREIGN_LIST_RULES -a -e $CHINA_LIST_RULES ]; then
+    return
+  fi
+  ln -sf $SS_RULES_SRC $SS_RULES
+  ln -sf $FOREIGN_LIST_RULES_SRC $FOREIGN_LIST_RULES 
+  ln -sf $CHINA_LIST_RULES_SRC $CHINA_LIST_RULES
+  /etc/init.d/dnsmasq restart
+}
+
+stopService(){
+  $SS_WATCHDOG_SERVICE stop
+  $SS_LOCAL_SERVICE stop
+  $SS_REDIR_TCP_SERVICE stop
+  $SS_REDIR_UDP_SERVICE stop
+  $SSR_LOCAL_SERVICE stop
+  $SSR_REDIR_TCP_SERVICE stop
+  $SSR_REDIR_UDP_SERVICE stop
+  $CHINADNS_SERVICE stop
+  $DNS2SOCKS_SERVICE stop
+  $KCPTUN_SERVICE stop
+  $UDP2RAW_KCPTUN_SERVICE stop
+  $UDP2RAW_SS_SERVICE stop
+}
+
+disableSS(){
+  
+  del_rules
+  
+  stopService
+  
+  # restore dnsmasq configure
+  if [ -e $SS_RULES -o -e $CHINA_LIST_RULES -o -e $FOREIGN_LIST_RULES ]; then
+    rm -rf $SS_RULES
+    rm -rf $CHINA_LIST_RULES 
+    rm -rf $FOREIGN_LIST_RULES
+    /etc/init.d/dnsmasq restart
+  fi
+}
+
+enbaleSS(){
+
+  stopService
+  
+  # Init the ipset
+  RouterConfig=`mca-ctrl -t dump-cfg`
+  DirectAccessHosts=`echo $RouterConfig | jq -r '.firewall|.group|.["address-group"]|with_entries(select(.value.description == "customized-DirectAccessHosts"))|keys[]'`
+  DirectAccessPorts=`echo $RouterConfig | jq -r '.firewall|.group|.["port-group"]|with_entries(select(.value.description == "customized-DirectAccessPorts"))|keys[]'`
+  
+  ipset -N chnroute hash:net maxelem 65536 > /dev/null 2>&1
+
+  ipset flush chnroute
+  
+  if [ -e $CHNROUTE_RULES_CACHE ]; then
+    ipset -! restore < $CHNROUTE_RULES_CACHE
+  else
+    sed -e "s/^/add chnroute &/g" $CHNROUTE_RULES | awk '{print $0} END{print "COMMIT"}' | ipset -R
+    ipset save chnroute > $CHNROUTE_RULES_CACHE
+  fi
+  
+  #init Dnsmasq
+  configureDnsmasq
+  
+  #del old iptables rules
+  del_rules
+    
+  #Create iptables chain for tcp 
+  iptables -w -t nat -N SHADOWSOCKS
+  iptables -w -t nat -A SHADOWSOCKS -d $server -j RETURN
+  iptables -w -t nat -A SHADOWSOCKS -d 0.0.0.0/8 -j RETURN
+  iptables -w -t nat -A SHADOWSOCKS -d 10.0.0.0/8 -j RETURN
+  iptables -w -t nat -A SHADOWSOCKS -d 127.0.0.0/8 -j RETURN
+  iptables -w -t nat -A SHADOWSOCKS -d 169.254.0.0/16 -j RETURN
+  iptables -w -t nat -A SHADOWSOCKS -d 172.16.0.0/12 -j RETURN
+  iptables -w -t nat -A SHADOWSOCKS -d 192.168.0.0/16 -j RETURN
+  iptables -w -t nat -A SHADOWSOCKS -d 224.0.0.0/4 -j RETURN
+  iptables -w -t nat -A SHADOWSOCKS -d 240.0.0.0/4 -j RETURN
+  #TODO Ingore WAN
+  
+  #ignore DirectAccessHosts,DirectAccessPorts, which are address groups created by unifi controller.
+  
+  if [ "$DirectAccessHosts" != "jq: error: null has no keys" ]; then
+    iptables -w -t nat -A SHADOWSOCKS -p tcp -m set --match-set $DirectAccessHosts src -j RETURN
+  fi
+  
+  if [ "$DirectAccessHosts" != "jq: error: null has no keys" ]; then
+    iptables -w -t nat -A SHADOWSOCKS -p tcp -m set --match-set $DirectAccessPorts dst -j RETURN
+  fi
+  
+  iptables -w -t nat -A SHADOWSOCKS -p tcp -m set --match-set chnroute dst -j RETURN
+  iptables -w -t nat -A SHADOWSOCKS -p tcp -j REDIRECT --to-ports $local_port
+  iptables -w -t nat -A PREROUTING -p tcp -j SHADOWSOCKS
+  
+  if [ "$client_type" = "ssr" ]; then
+    $SSR_LOCAL_SERVICE start
+    $SSR_REDIR_TCP_SERVICE start
+  else
+    $SS_LOCAL_SERVICE start
+    $SS_REDIR_TCP_SERVICE start
+  fi
+  
+  kernel_verison=`uname -r`
+  if [ "$enable_udp_relay" = "yes" -a "$kernel_verison" = "3.10.20-UBNT" ]; then
+    modprobe nf_tproxy_core
+    modprobe xt_TPROXY
+    modprobe xt_socket
+    ip route add local default dev lo table 100
+    ip rule add fwmark 1 lookup 100
+    #Create new shadowsocks chain
+    iptables -w -t mangle -N SHADOWSOCKS_UDP
+    #igonre ss_server_ip
+    iptables -w -t mangle -A SHADOWSOCKS_UDP -d $server -j RETURN
+    iptables -w -t mangle -A SHADOWSOCKS_UDP -d 0.0.0.0/8 -j RETURN
+    iptables -w -t mangle -A SHADOWSOCKS_UDP -d 10.0.0.0/8 -j RETURN
+    iptables -w -t mangle -A SHADOWSOCKS_UDP -d 127.0.0.0/8 -j RETURN
+    iptables -w -t mangle -A SHADOWSOCKS_UDP -d 169.254.0.0/16 -j RETURN
+    iptables -w -t mangle -A SHADOWSOCKS_UDP -d 172.16.0.0/12 -j RETURN
+    iptables -w -t mangle -A SHADOWSOCKS_UDP -d 192.168.0.0/16 -j RETURN
+    iptables -w -t mangle -A SHADOWSOCKS_UDP -d 224.0.0.0/4 -j RETURN
+    iptables -w -t mangle -A SHADOWSOCKS_UDP -d 240.0.0.0/4 -j RETURN
+    
+
+    #ignore DirectAccessHosts,DirectAccessPorts, which are address groups created by unifi controller.
+    if [ "$DirectAccessHosts" != "jq: error: null has no keys" ]; then
+      iptables -w -t mangle -A SHADOWSOCKS_UDP -p udp -m set --match-set $DirectAccessHosts src -j RETURN
+    fi
+  
+    if [ "$DirectAccessHosts" != "jq: error: null has no keys" ]; then
+      iptables -w -t mangle -A SHADOWSOCKS_UDP -p udp -m set --match-set $DirectAccessPorts dst -j RETURN
+    fi
+    
+    # ignore Chinese ip
+    iptables -w -t mangle -A SHADOWSOCKS_UDP -p udp -m set --match-set chnroute dst -j RETURN
+    iptables -w -t mangle -A SHADOWSOCKS_UDP -p udp -j TPROXY --on-port $local_port --tproxy-mark 0x01/0x01
+    iptables -w -t mangle -A PREROUTING -p udp -j SHADOWSOCKS_UDP
+    
+    if [ "$client_type" = "ssr" ]; then
+      $SSR_REDIR_UDP_SERVICE restart
+    else
+      $SS_REDIR_UDP_SERVICE restart
+    fi
+  fi
+  
+  #start other services
+  $CHINADNS_SERVICE start 
+  $DNS2SOCKS_SERVICE start 
+  
+  if [ "$enable_kcptun" = "yes" ]; then
+    $KCPTUN_SERVICE start
+  fi
+  
+  if [ "$enable_udp2raw" = "yes" ]; then
+    $UDP2RAW_KCPTUN_SERVICE start
+    if [ "$enable_udp_relay" = "yes" -a "$kernel_verison" = "3.10.20-UBNT" ]; then
+      $UDP2RAW_SS_SERVICE start
+    fi
+  fi
+  $SS_WATCHDOG_SERVICE start
+}
+
+configSS() {
+  if [ "$enable" != "yes" ];then
+    disableSS
+  else
+    enbaleSS
+  fi
+}
+
+fixSS
+configSS

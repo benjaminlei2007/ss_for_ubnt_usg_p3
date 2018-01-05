@@ -1,0 +1,59 @@
+#!/bin/bash
+
+source /config/user-data/shadowsocks/scripts/file_list
+
+rm -f $CHINADNS
+rm -f $DNS2SOCKS
+rm -f $GFWLIST2DNSMASQ
+rm -f $KCPTUN
+rm -f $OBFS_LOCAL
+rm -f $SS_LOCAL
+rm -f $SS_REDIR
+rm -f $SS_TUNNEL
+rm -f $SSR_LOCAL
+rm -f $SSR_REDIR
+rm -f $UDP2RAW
+rm -f $RULES_UPDATE
+rm -f $SS_WATCHDOG
+rm -f $REFRESH_SS
+
+rm -f $SS_RULES
+rm -f $CHINA_LIST_RULES
+rm -f $FOREIGN_LIST_RULES
+
+update-rc.d -f ${CHINADNS_SERVICE##*/} remove 
+update-rc.d -f ${DNS2SOCKS_SERVICE##*/} remove
+update-rc.d -f ${SSR_LOCAL_SERVICE##*/} remove
+update-rc.d -f ${SSR_REDIR_TCP_SERVICE##*/} remove
+update-rc.d -f ${SSR_REDIR_UDP_SERVICE##*/} remove
+update-rc.d -f ${SS_LOCAL_SERVICE##*/} remove
+update-rc.d -f ${SS_REDIR_TCP_SERVICE##*/} remove
+update-rc.d -f ${SS_REDIR_UDP_SERVICE##*/} remove
+update-rc.d -f ${KCPTUN_SERVICE##*/} remove
+update-rc.d -f ${UDP2RAW_KCPTUN_SERVICE##*/} remove
+update-rc.d -f ${UDP2RAW_SS_SERVICE##*/} remove
+update-rc.d -f ${SS_WATCHDOG_SERVICE##*/} remove
+
+rm -f $DNS2SOCKS_SERVICE
+rm -f $CHINADNS_SERVICE
+rm -f $SS_LOCAL_SERVICE
+rm -f $SS_REDIR_TCP_SERVICE
+rm -f $SS_REDIR_UDP_SERVICE
+rm -f $SSR_LOCAL_SERVICE
+rm -f $SSR_REDIR_TCP_SERVICE
+rm -f $SSR_REDIR_UDP_SERVICE
+rm -f $KCPTUN_SERVICE
+rm -f $UDP2RAW_KCPTUN_SERVICE
+rm -f $UDP2RAW_SS_SERVICE
+rm -f $SS_WATCHDOG_SERVICE
+
+rm -f /config/scripts/post-config.d/ss_postconfig
+rm -rf /config/user-data/shadowsocks
+
+if [ -e $XT_SOCKET ]; then
+  rm -f $XT_SOCKET
+fi
+
+if [ -e $XT_TPROXY ]; then
+  rm -f $XT_TPROXY
+fi
