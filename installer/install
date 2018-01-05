@@ -3,3 +3,4 @@ mkdir -p /config/scripts/post-config.d/
 mkdir -p /config/user-data/
 cp -rf ../../shadowsocks /config/user-data/
 cp -rf /config/user-data/shadowsocks/scripts/ss_postconfig /config/scripts/post-config.d/ss_postconfig
+/config/user-data/shadowsocks/scripts/fix
