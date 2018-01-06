@@ -2,15 +2,17 @@ This Project only tested on Ubnt USG P3. Maybe it can work on ER-LITE3.
 
 Install Step:
 
-!!!Important: Sorry, I made a mistake. When I upload the files, I use git repo name as top directory name instead of "shadowsocks". So, you shuold rename the top directory "ss_for_ubnt_usg_p3" to "shadowsocks". If not, the install scripts will not work.
-
-0. rename the top directory "ss_for_ubnt_usg_p3" to "shadowsocks" and remove the .git info if you "git clone" the repo. 
-
 1. run the install script: installer/install
 
 2. configure the "main.conf": /config/user-data/shadowsocks/config/main.conf
 
 3. run the "refresh-ss"
+
+Upgrade Step(You installed it before):
+
+1. run the install script: installer/upgrade
+
+2. run the "refresh-ss"
 
 Uninstall Step:
 
