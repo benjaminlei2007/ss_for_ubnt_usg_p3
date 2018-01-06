@@ -1,0 +1,12 @@
+#!/bin/bash
+mkdir -p /config/scripts/post-config.d/
+mkdir -p /config/user-data/shadowsocks
+cp -rf ../bin /config/user-data/shadowsocks/
+cp -rf ../installer /config/user-data/shadowsocks/
+cp -rf ../modules /config/user-data/shadowsocks/
+cp -rf ../rules /config/user-data/shadowsocks/
+cp -rf ../scripts /config/user-data/shadowsocks/
+cp -rf ../services /config/user-data/shadowsocks/
+cp -rf /config/user-data/shadowsocks/scripts/ss_postconfig /config/scripts/post-config.d/ss_postconfig
+
+/config/user-data/shadowsocks/scripts/fix
