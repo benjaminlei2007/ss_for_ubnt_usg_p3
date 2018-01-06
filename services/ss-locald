@@ -87,7 +87,7 @@ do_start() {
         echo "$NAME (pid $PID) is already running..."
         return 0
     fi
-    nohup $DAEMON $DAEMON_ARGS >/var/log/ss-locald.log 2>&1 &
+    $DAEMON $DAEMON_ARGS >/var/log/ss-locald.log 2>&1 &
     pgrep -n ${DAEMON##*/} > $PID_FILE
     if check_running; then
         echo "Starting $NAME success"

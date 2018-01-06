@@ -74,7 +74,7 @@ do_start() {
         echo "$NAME (pid $PID) is already running..."
         return 0
     fi
-   nohup $DAEMON 127.0.0.1:$local_socks5_port $foreign_dns 127.0.0.1:5300 > /var/log/dns2socksd.log 2>&1 &
+   $DAEMON 127.0.0.1:$local_socks5_port $foreign_dns 127.0.0.1:5300 > /var/log/dns2socksd.log 2>&1 &
    pgrep -n ${DAEMON##*/} > $PID_FILE
 
     if check_running; then

@@ -80,9 +80,9 @@ do_status() {
 
 do_start() {
     if [ "$enable_udp2raw" = "yes" ]; then
-      nohup $DAEMON -s 127.0.0.1 -p `expr $local_port + 3` $DAEMON_ARGS -U >/var/log/ss-redird_udp.log 2>&1 &
+      $DAEMON -s 127.0.0.1 -p `expr $local_port + 3` $DAEMON_ARGS -U >/var/log/ss-redird_udp.log 2>&1 &
     else
-      nohup $DAEMON -s $server -p $server_port $DAEMON_ARGS -U >/var/log/ss-redird_udp.log 2>&1 &
+      $DAEMON -s $server -p $server_port $DAEMON_ARGS -U >/var/log/ss-redird_udp.log 2>&1 &
     fi
     pgrep -n ${DAEMON##*/} > $PID_FILE
     

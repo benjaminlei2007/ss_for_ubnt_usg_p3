@@ -75,9 +75,9 @@ do_start() {
         return 0
     fi
     if [ "$enable_udp2raw" = "yes" ]; then
-      nohup $DAEMON -l 0.0.0.0:`expr $local_port + 1` -r 127.0.0.1:`expr $local_port + 2` $kcptun_param > /var/log/kcptund.log 2>&1 &
+      $DAEMON -l 0.0.0.0:`expr $local_port + 1` -r 127.0.0.1:`expr $local_port + 2` $kcptun_param > /var/log/kcptund.log 2>&1 &
     else
-      nohup $DAEMON -l 0.0.0.0:`expr $local_port + 1` -r $server:$kcptun_server_port $kcptun_param > /var/log/kcptund.log 2>&1 &
+      $DAEMON -l 0.0.0.0:`expr $local_port + 1` -r $server:$kcptun_server_port $kcptun_param > /var/log/kcptund.log 2>&1 &
     fi
     pgrep -n ${DAEMON##*/} > $PID_FILE
 

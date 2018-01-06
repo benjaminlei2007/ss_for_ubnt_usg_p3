@@ -75,7 +75,7 @@ do_start() {
     echo "$NAME (pid $PID) is already running..."
     return 0
   fi
-  nohup $DAEMON >/var/log/ss-watchdogd.log 2>&1 &
+  $DAEMON >/var/log/ss-watchdogd.log 2>&1 &
   pgrep -n ${DAEMON##*/} > $PID_FILE
 
   if check_running; then

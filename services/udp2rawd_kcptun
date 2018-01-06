@@ -74,7 +74,7 @@ do_start() {
         echo "$NAME (pid $PID) is already running..."
         return 0
     fi
-    nohup $DAEMON -c -r$server:$udp2raw_kcptun_server_port -l0.0.0.0:`expr $local_port + 2` $udp2raw_param > /var/log/udp2rawd_kcptun.log 2>&1 &
+    $DAEMON -c -r$server:$udp2raw_kcptun_server_port -l0.0.0.0:`expr $local_port + 2` $udp2raw_param > /var/log/udp2rawd_kcptun.log 2>&1 &
     pgrep -n ${DAEMON##*/} > $PID_FILE
 
     if check_running; then
