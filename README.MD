@@ -10,7 +10,7 @@ Install Step:
 
 Upgrade Step(You installed it before):
 
-1. run the install script: installer/upgrade
+1. run the upgrade script: installer/upgrade
 
 2. run the "refresh-ss"
 
