@@ -38,8 +38,8 @@ updateChinaList() {
   if [ ! -n "`diff /tmp/china_list.conf $CHINA_LIST_RULES_SRC`" ]; then
     return 1
   fi
-  mv -f /tmp/china_list.conf $CHINA_LIST_RULES
-  chmod 644 $CHINA_LIST_RULES
+  mv -f /tmp/china_list.conf $CHINA_LIST_RULES_SRC
+  chmod 644 $CHINA_LIST_RULES_SRC
   need_restart_dnsmasq=1
   return 0
 }
@@ -54,8 +54,8 @@ updateForeignList(){
   if [ ! -n "`diff /tmp/foreign_list.conf $FOREIGN_LIST_RULES_SRC`" ]; then
     return 1
   fi
-  mv -f /tmp/foreign_list.conf $FOREIGN_LIST_RULES
-  chmod 644 $FOREIGN_LIST_RULES
+  mv -f /tmp/foreign_list.conf $FOREIGN_LIST_RULES_SRC
+  chmod 644 $FOREIGN_LIST_RULES_SRC
   need_restart_dnsmasq=1
   return 0
 }
