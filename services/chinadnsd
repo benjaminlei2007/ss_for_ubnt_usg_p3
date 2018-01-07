@@ -82,7 +82,7 @@ do_start() {
     echo "$NAME (pid $PID) is already running..."
     return 0
   fi
-  $DAEMON  -c $CHNROUTE -s $DNSIP -p 5353 -m >/var/log/chinadnsd.log 2>&1 &
+  $DAEMON  -c $CHNROUTE -s $DNSIP -p 5354 -m >/var/log/chinadnsd.log 2>&1 &
   pgrep -n ${DAEMON##*/} > $PID_FILE
 
   if check_running; then

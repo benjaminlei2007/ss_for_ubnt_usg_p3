@@ -35,7 +35,7 @@ updateChinaList() {
   if [ ! -s /tmp/china_list.conf ]; then
     return 1
   fi
-  if [ ! -n "`diff /tmp/china_list.conf $CHINA_LIST_RULES`" ]; then
+  if [ ! -n "`diff /tmp/china_list.conf $CHINA_LIST_RULES_SRC`" ]; then
     return 1
   fi
   mv -f /tmp/china_list.conf $CHINA_LIST_RULES
@@ -47,11 +47,11 @@ updateChinaList() {
 updateForeignList(){
   rm -f /tmp/foreign_list.conf  
   # download foreign_list.conf
-  gfwlist2dnsmasq -o /tmp/foreign_list.conf
+  gfwlist2dnsmasq -p 5300 -o /tmp/foreign_list.conf
   if [ ! -s /tmp/foreign_list.conf ]; then
     return 1
   fi
-  if [ ! -n "`diff /tmp/foreign_list.conf $FOREIGN_LIST_RULES`" ]; then
+  if [ ! -n "`diff /tmp/foreign_list.conf $FOREIGN_LIST_RULES_SRC`" ]; then
     return 1
   fi
   mv -f /tmp/foreign_list.conf $FOREIGN_LIST_RULES
