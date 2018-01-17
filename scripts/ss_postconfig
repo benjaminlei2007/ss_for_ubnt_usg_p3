@@ -14,22 +14,22 @@ fixSS(){
 # delete old shadowsocks chain
 del_rules(){
 
-  exists_iptables=`iptables -t nat -L | grep 'SHADOWSOCKS'`
+  exists_iptables=`iptables -w -t nat -L | grep 'SHADOWSOCKS'`
   until [ ! -n "$exists_iptables" ]
   do 
     iptables -w -t nat -D PREROUTING -p tcp -j SHADOWSOCKS 
     iptables -w -t nat -F SHADOWSOCKS 
     iptables -w -t nat -X SHADOWSOCKS 
-    exists_iptables=`iptables -t nat -L | grep 'SHADOWSOCKS'`
+    exists_iptables=`iptables -w -t nat -L | grep 'SHADOWSOCKS'`
   done
   
-  exists_iptables=`iptables -t mangle -L | grep 'SHADOWSOCKS_UDP'`
+  exists_iptables=`iptables -w -t mangle -L | grep 'SHADOWSOCKS_UDP'`
   until [ ! -n "$exists_iptables" ]
   do 
     iptables -w -t mangle -D PREROUTING -p udp -j SHADOWSOCKS_UDP 
     iptables -w -t mangle -F SHADOWSOCKS_UDP 
     iptables -w -t mangle -X SHADOWSOCKS_UDP 
-    exists_iptables=`iptables -t mangle -L | grep 'SHADOWSOCKS_UDP'`
+    exists_iptables=`iptables -w -t mangle -L | grep 'SHADOWSOCKS_UDP'`
   done
   
     ip_rule_exist=`ip rule show | grep "lookup 100" | grep -c 100`
@@ -129,14 +129,8 @@ enbaleSS(){
   #TODO Ingore WAN
   
   #ignore DirectAccessHosts,DirectAccessPorts, which are address groups created by unifi controller.
-  
-  if [ "$DirectAccessHosts" != "jq: error: null has no keys" ]; then
-    iptables -w -t nat -A SHADOWSOCKS -p tcp -m set --match-set $DirectAccessHosts src -j RETURN
-  fi
-  
-  if [ "$DirectAccessHosts" != "jq: error: null has no keys" ]; then
-    iptables -w -t nat -A SHADOWSOCKS -p tcp -m set --match-set $DirectAccessPorts dst -j RETURN
-  fi
+  iptables -w -t nat -A SHADOWSOCKS -p tcp -m set --match-set $DirectAccessHosts src -j RETURN > /dev/null 2>&1
+  iptables -w -t nat -A SHADOWSOCKS -p tcp -m set --match-set $DirectAccessPorts dst -j RETURN > /dev/null 2>&1
   
   iptables -w -t nat -A SHADOWSOCKS -p tcp -m set --match-set chnroute dst -j RETURN
   iptables -w -t nat -A SHADOWSOCKS -p tcp -j REDIRECT --to-ports $local_port
@@ -172,13 +166,8 @@ enbaleSS(){
     
 
     #ignore DirectAccessHosts,DirectAccessPorts, which are address groups created by unifi controller.
-    if [ "$DirectAccessHosts" != "jq: error: null has no keys" ]; then
-      iptables -w -t mangle -A SHADOWSOCKS_UDP -p udp -m set --match-set $DirectAccessHosts src -j RETURN
-    fi
-  
-    if [ "$DirectAccessHosts" != "jq: error: null has no keys" ]; then
-      iptables -w -t mangle -A SHADOWSOCKS_UDP -p udp -m set --match-set $DirectAccessPorts dst -j RETURN
-    fi
+    iptables -w -t mangle -A SHADOWSOCKS_UDP -p udp -m set --match-set $DirectAccessHosts src -j RETURN > /dev/null 2>&1
+    iptables -w -t mangle -A SHADOWSOCKS_UDP -p udp -m set --match-set $DirectAccessPorts dst -j RETURN > /dev/null 2>&1
     
     # ignore Chinese ip
     iptables -w -t mangle -A SHADOWSOCKS_UDP -p udp -m set --match-set chnroute dst -j RETURN
